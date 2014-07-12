@@ -1,10 +1,26 @@
 #lang racket/base
 
+;; usage:
+;; (define foo (solve n)) ; where n is number of people
+;; (apply vis foo)
+;; see function signature of solve for more
+
+(provide solve
+         vis)
+
 (require 2htdp/image
          racket/math
          racket/list
          racket/function
          racket/format)
+
+;; -----------------------------------------------------------------------------
+;; config
+(define debug? #f)
+
+;; -----------------------------------------------------------------------------
+(define (log str . args)
+  (when debug? (apply printf str args)))
 
 (define (render b)                      ; binge -> image
   (define size 200)
@@ -84,20 +100,18 @@
   (define possible-moves '(()))
   (for ([i (in-range (binge-size b))])  ; every member
     (define pinned possible-moves)
-    ;;(printf "member ~a, from ~a\n" i pinned)
     (for* ([m (in-list pinned)]    ; every previous move in this round
            [o (in-range i (binge-size b))] ; every other member
            #:unless (or (equal? i o)
-                        ;; already cheered in binge-state
+                        ;; already cheered in binge-state?
                         (cheered? b (cons (min i o)
                                           (max i o)))
-                        ;; busy (cheering other) this move
+                        ;; busy (cheering other) this move?
                         (or (busy? m o)
                             (busy? m i))
-                        ;; crossing this move
+                        ;; crossing this move?
                         (crossing? m (cons (min i o)
                                            (max i o)))))
-      ;;(printf "for ~a: ~a\n" m (cons i o))
       (set! possible-moves
             (cons (cons (cons (min i o)
                               (max i o))
@@ -130,26 +144,26 @@
            (let* ([ms (next-moves b)]
                   [ls (sort (map length ms) >)]
                   [c (count (curry equal? (first ls)) ls)])
-             (printf "spreading ~a moves, longest ~a, reduce to ~a\n"
+             (log "spreading ~a moves, longest ~a, reduce to ~a\n"
                      (length ms) (first ls) c)
              (if fast-moves?
                  (take (sort ms > #:key length) c)
                  ms)))
          (map (curry apply-move b)
               moves))))    
-    (printf "generated ~a new binges\n" (length next-binges))
+    (log "generated ~a new binges\n" (length next-binges))
     (define unique-binges
-      ;; TODO maybe implement a more granular key?
+      ;; TODO maybe implement a more granular, discriminating key?
       (remove-duplicates next-binges
                          #:key (lambda (b) (cons (binge-state b)
                                             (length (binge-moves b))))))
-    (printf "discarded ~a duplicates\n" (- (length next-binges)
+    (log "discarded ~a duplicates\n" (- (length next-binges)
                                            (length unique-binges)))
     (define-values (done rest)
       (partition finished? (if remove-dups?
                                unique-binges
                                next-binges)))
-    (printf "found ~a finals\nrecur on ~a others\n" (length done) (length rest))
+    (log "found ~a finals\nrecur on ~a others\n" (length done) (length rest))
     (set! finished (append done finished))
     (if (if fast-finish?
             (not (empty? finished))
@@ -163,41 +177,32 @@
 (define (sort-moves ms)
   (sort ms < #:key index #:cache-keys? #f))
 
-(define (index m) ; move -> integer
+(define (index m)                       ; move -> integer
   (+ (* (car m) 10)
      (cdr m)))
 
-(define (busy? ms i) ; moves player -> < #t | #f >
+(define (busy? ms i)                    ; moves player -> < #t | #f >
   (list? (member i (flatten ms))))
 
-(define (cheered? b m) ; binge move -> < #t | #f >
+(define (cheered? b m)                  ; binge move -> < #t | #f >
   (list? (member m (binge-state b))))
 
-(define (crossing? ms m) ; moves move -> < #t | #f >
+(define (crossing? ms m)                ; moves move -> < #t | #f >
   (for/or ([mv (in-list ms)])
     (or (and (inside? m (car mv))
              (outside? m (cdr mv)))
         (and (inside? m (cdr mv))
              (outside? m (car mv))))))
 
-(define (inside? m v) ; move value -> < #t | #f >
+(define (inside? m v)                   ; move value -> < #t | #f >
   (and (> v (car m))
        (< v (cdr m))))
 
-(define (outside? m v) ; move value -> < #t | #f >
+(define (outside? m v)                  ; move value -> < #t | #f >
   (or (and (> v (car m)) (> v (cdr m)))
       (and (< v (car m)) (< v (cdr m)))))  
 
-(define (test-crossing)
-  (values (crossing? '((0 . 2)) '(1 . 3))
-          (crossing? '((1 . 3)) '(0 . 2))
-          (crossing? '((0 . 3)) '(1 . 2))))
-
 ;; -----------------------------------------------------------------------------
-(define foo (apply-move
-             (apply-move (new-binge 6) '((0 . 1) (2 . 5)))
-             '((0 . 2) (3 . 4))))
-
 (define (vis . b)
   (let ([file-name (~a "render-" (current-seconds) ".png")])
     (if (equal? 1 (length b))
