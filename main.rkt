@@ -117,7 +117,6 @@
                                 (equal? (cdr m) i)))
                      (binge-state b))))))
 
-;; TODO remove quasi-duplicates - binges with equal state & move-count, only different move ordering
 (define (solve size
                #:remove-dups? [remove-dups? #t]
                #:fast-finish? [fast-finish? #f])
@@ -128,21 +127,26 @@
        (for/list ([b (in-list bs)])
          (map (curry apply-move b)
               (next-moves b)))))    
+    (printf "generated ~a new binges\n" (length next-binges))
     (define unique-binges
       ;; TODO maybe implement a more granular key?
       (remove-duplicates next-binges
                          #:key (lambda (b) (cons (binge-state b)
                                             (length (binge-moves b))))))
+    (printf "discarded ~a duplicates\n" (- (length next-binges)
+                                           (length unique-binges)))
     (define-values (done rest)
       (partition finished? (if remove-dups?
                                unique-binges
                                next-binges)))
+    (printf "found ~a finals\nrecurring on ~a others\n" (length done) (length rest))
     (set! finished (append done finished))
     (if (if fast-finish?
             (not (empty? finished))
             (empty? rest))
         finished
         (run rest)))
+  ;;
   (run (list (new-binge size))))
 
 ;; -----------------------------------------------------------------------------
