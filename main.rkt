@@ -34,13 +34,13 @@
                 color)))
   (define (lineate img moves)
     (define copy img)
-    (for ([ms (in-list moves)]
-          [i (in-naturals)]
+    (for ([ms (in-list (reverse moves))]
+          [i (in-range (length moves) 0 -1)] ; (in-naturals)
           #:when #t
           [m (in-list ms)])
       (set! copy
-            (line copy m (if (equal? i 0)
-                             "red"
+            (line copy m (if (equal? i 1)
+                             (pen "red" 2 'solid 'round 'round);;"red"
                              "gray"))))
     copy)
   (define series
@@ -118,7 +118,9 @@
                      (binge-state b))))))
 
 ;; TODO remove quasi-duplicates - binges with equal state & move-count, only different move ordering
-(define (solve size)
+(define (solve size
+               #:remove-dups? [remove-dups? #t]
+               #:fast-finish? [fast-finish? #f])
   (define finished '())
   (define (run bs)
     (define next-binges
@@ -127,13 +129,18 @@
          (map (curry apply-move b)
               (next-moves b)))))    
     (define unique-binges
+      ;; TODO maybe implement a more granular key?
       (remove-duplicates next-binges
                          #:key (lambda (b) (cons (binge-state b)
                                             (length (binge-moves b))))))
     (define-values (done rest)
-      (partition finished? unique-binges))
+      (partition finished? (if remove-dups?
+                               unique-binges
+                               next-binges)))
     (set! finished (append done finished))
-    (if (empty? rest)
+    (if (if fast-finish?
+            (not (empty? finished))
+            (empty? rest))
         finished
         (run rest)))
   (run (list (new-binge size))))
@@ -177,14 +184,8 @@
              (apply-move (new-binge 6) '((0 . 1) (2 . 5)))
              '((0 . 2) (3 . 4))))
 
-(define qux (solve 4))
-
 (define (vis . b)
-  (save-image (apply beside (map render b))
-              (~a "render-" (current-seconds) ".png")))
-
-;;(save-image (render foo) "render.png")
-
-;; (save-image (apply beside (map render
-;;                                (take-right qux 12)))
-;;             "render-4x12.png")
+  (let ([file-name (~a "render-" (current-seconds) ".png")])
+    (if (equal? 1 (length b))
+        (save-image (render (first b)) file-name)
+        (save-image (apply beside (map render b)) file-name))))
