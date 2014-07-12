@@ -119,14 +119,24 @@
 
 (define (solve size
                #:remove-dups? [remove-dups? #t]
-               #:fast-finish? [fast-finish? #f])
+               #:fast-moves? [fast-moves? #t]
+               #:fast-finish? [fast-finish? #t])
   (define finished '())
   (define (run bs)
     (define next-binges
       (flatten
        (for/list ([b (in-list bs)])
+         (define moves
+           (let* ([ms (next-moves b)]
+                  [ls (sort (map length ms) >)]
+                  [c (count (curry equal? (first ls)) ls)])
+             (printf "spreading ~a moves, longest ~a, reduce to ~a\n"
+                     (length ms) (first ls) c)
+             (if fast-moves?
+                 (take (sort ms > #:key length) c)
+                 ms)))
          (map (curry apply-move b)
-              (next-moves b)))))    
+              moves))))    
     (printf "generated ~a new binges\n" (length next-binges))
     (define unique-binges
       ;; TODO maybe implement a more granular key?
@@ -135,7 +145,6 @@
                                             (length (binge-moves b))))))
     (printf "discarded ~a duplicates\n" (- (length next-binges)
                                            (length unique-binges)))
-    ;;(define fast-binges)
     (define-values (done rest)
       (partition finished? (if remove-dups?
                                unique-binges
