@@ -121,25 +121,30 @@
 (define (solve size)
   (define finished '())
   (define (run bs)
+    (define next-binges
+      (flatten
+       (for/list ([b (in-list bs)])
+         (map (curry apply-move b)
+              (next-moves b)))))    
+    (define unique-binges
+      (remove-duplicates next-binges
+                         #:key (lambda (b) (cons (binge-state b)
+                                            (length (binge-moves b))))))
     (define-values (done rest)
-      (partition finished?
-                 (flatten
-                  (for/list ([b (in-list bs)])
-                    (define moves (next-moves b))
-                    (map (curry apply-move b) moves)))))
+      (partition finished? unique-binges))
     (set! finished (append done finished))
     (if (empty? rest)
         finished
         (run rest)))
   (run (list (new-binge size))))
 
+;; -----------------------------------------------------------------------------
+(define (sort-moves ms)
+  (sort ms < #:key index #:cache-keys? #f))
+
 (define (index m) ; move -> integer
   (+ (* (car m) 10)
      (cdr m)))
-
-;; -----------------------------------------------------------------------------
-(define (sort-moves ms)
-  (sort ms < #:key car))
 
 (define (busy? ms i) ; moves player -> < #t | #f >
   (list? (member i (flatten ms))))
