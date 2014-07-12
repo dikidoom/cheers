@@ -86,7 +86,7 @@
     (define pinned possible-moves)
     ;;(printf "member ~a, from ~a\n" i pinned)
     (for* ([m (in-list pinned)]    ; every previous move in this round
-           [o (in-range (binge-size b))] ; every other member
+           [o (in-range i (binge-size b))] ; every other member
            #:unless (or (equal? i o)
                         ;; already cheered in binge-state
                         (cheered? b (cons (min i o)
@@ -135,11 +135,12 @@
                                             (length (binge-moves b))))))
     (printf "discarded ~a duplicates\n" (- (length next-binges)
                                            (length unique-binges)))
+    ;;(define fast-binges)
     (define-values (done rest)
       (partition finished? (if remove-dups?
                                unique-binges
                                next-binges)))
-    (printf "found ~a finals\nrecurring on ~a others\n" (length done) (length rest))
+    (printf "found ~a finals\nrecur on ~a others\n" (length done) (length rest))
     (set! finished (append done finished))
     (if (if fast-finish?
             (not (empty? finished))
