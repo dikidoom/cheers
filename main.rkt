@@ -2,12 +2,13 @@
 
 ;; cheers/main.rkt
 ;; 
-;; when more than 3 people are having drinks and want to toast each other individually,
-;; things get complicated. computers are indispensable in solving this problem.
+;; when more than 3 people are having drinks and want to toast each other individually, things get complicated.
 ;;
-;; use:
-;; (define foo (solve n))  ; where n is number of people, preferably < 9
-;; (vis foo)               ; saves an instructional PNG
+;; usage:
+;; $ racket
+;; > (enter! "main.rkt")
+;; > (define foo (solve n))  ; where n is number of people, preferably < 9
+;; > (vis foo)               ; saves an instructional PNG
 ;; see function signature of solve for more
 
 (provide solve
@@ -21,7 +22,7 @@
 
 ;; -----------------------------------------------------------------------------
 ;; config
-(define debug? #t)                      ; turns on logging
+(define debug? #f)                      ; turns on logging
 ;; -----------------------------------------------------------------------------
 ;; public
 (define (solve size                     ; number -> (list-of binge)
